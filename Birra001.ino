@@ -4,9 +4,6 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
-/* Definizioni globali */
-/* Corrispondenza pin LCD <-> pin digitali di Arduino */
-
 #define RS  7
 #define EN  6
 #define D7  2  
@@ -60,7 +57,7 @@ int timerStatus = 0;
 unsigned long timerStartMillis = 0;
 unsigned long timerCurrentMillis = 0;
 
-/* Impostazione dell'hardware */
+
 
 void setup() 
 {
@@ -87,10 +84,6 @@ void setup()
 
 void loop()
 {
-  
-  //controllo che il tasto B2 sia a STOP, solo così posso scegliere il programma con il tasto B1
-  //scelto il programma posso premere B2 per farlo partire e non posso più cambiarlo
-  //se premo B2 di nuovo lo STOPPO e posso scegliere ancora un altro programma
   
   if(countButton2 == 0){
     
@@ -286,14 +279,14 @@ void fermenterPrg()
 
 
 
-/* Legge la temperatura */
+
 float readTemp()
 {
   sensors.requestTemperatures();
   return sensors.getTempCByIndex(0); 
 }
 
-/* Invia la temperatura su un LCD (modo 4bit) */
+
 void sendStatusTempToLCD(int s, float temp)
 {
   lcd.clear();               
