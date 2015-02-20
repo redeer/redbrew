@@ -1,8 +1,9 @@
-
-
 #include <LiquidCrystal.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
+
+/* Definizioni globali */
+/* Corrispondenza pin LCD <-> pin digitali di Arduino */
 
 #define RS  7
 #define EN  6
@@ -34,22 +35,25 @@ const float tempTollerance = 1.0;
 float fermenterhTemp = 24.0;
 float fermenterlTemp = 18.0;
 
-float mashTemp[] = {50.0,52.0,62.0,68.0,78.0};
-int mashTime[] = {15,15,30,15};
-int mashState = 0;
+float mashTemp[6];
+int mashTime[6];
+int mashNum = 0;
 
-int boilTime[] = {50,10};
-const float boilTemp = 100.0;
-int boilState = 0;
+float boilTemp[6];
+int boilTime[6];
+int boilNum = 0;
+
+int state = 0;
 
 char* p[] = {"ALL OFF","COOLER ON","HEATER ON"}; 
-char* pd[] = {"LC BEER","MASH","BOIL","FERM","INFO"}; 
+char* pd[] = {"LC BEER","MASH","BOIL","FERM","INFO","SEL BEER"}; 
 char* ss[] = {"STOP","START"}; 
 int d = 250;
 int i = 0;
 
 int countButton1 = 0;
 int countButton2 = 0;
+int countButton3 = 1;
 int valButton1 = 0;
 int valButton2 = 0;
 
@@ -57,7 +61,7 @@ int timerStatus = 0;
 unsigned long timerStartMillis = 0;
 unsigned long timerCurrentMillis = 0;
 
-
+/* Impostazione dell'hardware */
 
 void setup() 
 {
@@ -73,17 +77,18 @@ void setup()
   
   fermenterhTemp = fermenterhTemp - tempTollerance;
   fermenterlTemp = fermenterlTemp + tempTollerance;
+  
+  mashTemp[0] = 0;
 
-  mashTemp[0] = mashTemp[0] - tempTollerance;
-  mashTemp[1] = mashTemp[1] - tempTollerance;
-  mashTemp[2] = mashTemp[2] - tempTollerance;
-  mashTemp[3] = mashTemp[3] - tempTollerance;
-  mashTemp[4] = mashTemp[4] - tempTollerance;
   
 }
 
 void loop()
 {
+  
+  //controllo che il tasto B2 sia a STOP, solo così posso scegliere il programma con il tasto B1
+  //scelto il programma posso premere B2 per farlo partire e non posso più cambiarlo
+  //se premo B2 di nuovo lo STOPPO e posso scegliere ancora un altro programma
   
   if(countButton2 == 0){
     
@@ -92,12 +97,13 @@ void loop()
     timerStatus = 0;
     d = 250;
     i = 0;
+    state = 0;
     
     valButton1 = digitalRead(Button1);
     if(valButton1 == HIGH){
       countButton1++; 
     } 
-    if(countButton1 == 5){
+    if(countButton1 == 6){
       countButton1 = 0; 
     }
   
@@ -117,10 +123,6 @@ void loop()
   
   if(countButton2 == 1){
     switch(countButton1){
-      case 4:
-        d = 500;
-        infoPrg();
-        break;
       case 1:
         d = 500;
         mashPrg();
@@ -133,6 +135,14 @@ void loop()
         d = 3000;
         fermenterPrg();
         break;
+      case 4:
+        d = 1000;
+        infoPrg();
+        break;
+      case 5:
+        d = 250;
+        selPrg();
+        break;
     }
   }
     
@@ -142,6 +152,105 @@ void loop()
 // END LOOP
 
 
+/*
+
+SEL
+
+*/
+
+void selPrg()
+{
+
+  valButton1 = digitalRead(Button1);
+  if(valButton1 == HIGH){
+      countButton3++; 
+  }
+  
+  if(countButton3 == 4){
+    countButton3 = 1;
+  }
+  
+  switch(countButton3){
+    case 1:
+    //STOUT
+        lcd.clear();
+        lcd.setCursor( 0, 0 );
+        lcd.print("STOUT");
+        lcd.setCursor( 0, 1 );
+        lcd.print("M: 65 68 78");
+        mashTemp[0] = 65.0;
+        mashTemp[1] = 68.0;
+        mashTemp[2] = 78.0;
+        mashTime[0] = 0;
+        mashTime[1] = 59;
+        mashTime[2] = 15;
+        mashNum = 3;
+        boilTemp[0] = 100.0;
+        boilTemp[1] = 100.0;
+        boilTemp[2] = 100.0;
+        boilTemp[3] = 100.0;
+        boilTime[0] = 0;
+        boilTime[1] = 30;
+        boilTime[2] = 20;
+        boilTime[3] = 10;
+        boilNum = 4;
+        break; 
+    case 2:
+    //LAGER - WAISS
+        lcd.clear();
+        lcd.setCursor( 0, 0 );
+        lcd.print("LAGER - WEISS");
+        lcd.setCursor( 0, 1 );
+        lcd.print("M: 52 62 68 78");
+        mashTemp[0] = 50.0;
+        mashTemp[1] = 52.0;
+        mashTemp[2] = 62.0;
+        mashTemp[3] = 68.0;
+        mashTemp[4] = 78.0;
+        mashTime[0] = 0;
+        mashTime[1] = 15;
+        mashTime[2] = 15;
+        mashTime[3] = 30;
+        mashTime[4] = 15;
+        mashNum = 5;
+        boilTemp[0] = 100.0;
+        boilTemp[1] = 100.0;
+        boilTemp[2] = 100.0;
+        boilTime[0] = 0;
+        boilTime[1] = 50;
+        boilTime[2] = 10;
+        boilNum = 3;
+        break;
+    case 3:
+    //PILSNER
+        lcd.clear();
+        lcd.setCursor( 0, 0 );
+        lcd.print("PILSNER");
+        lcd.setCursor( 0, 1 );
+        lcd.print("M: 52 65 70 78");
+        mashTemp[0] = 45.0;
+        mashTemp[1] = 52.0;
+        mashTemp[2] = 65.0;
+        mashTemp[3] = 70.0;
+        mashTemp[4] = 78.0;
+        mashTime[0] = 0;
+        mashTime[1] = 15;
+        mashTime[2] = 30;
+        mashTime[3] = 15;
+        mashTime[4] = 15;
+        mashNum = 5;
+        boilTemp[0] = 100.0;
+        boilTemp[1] = 100.0;
+        boilTemp[2] = 100.0;
+        boilTemp[2] = 100.0;
+        boilTime[0] = 0;
+        boilTime[1] = 30;
+        boilTime[2] = 20;
+        boilTime[3] = 10;
+        boilNum = 4;
+        break;
+   }
+}
 
 /*
 INFO
@@ -151,13 +260,13 @@ void infoPrg()
 {
   lcd.clear();              
   int c;
-  for(c=0;c<4;c++){
+  for(c=0;c<mashNum;c++){
     lcd.setCursor( 0, 0 );    
     lcd.print( pd[1]);
     lcd.print(" S:");
     lcd.print(c);
     lcd.setCursor( 0, 1 );
-    lcd.print(mashTemp[c+1] + tempTollerance);
+    lcd.print(mashTemp[c]);
     lcd.print("/");
     lcd.print(mashTime[c]);
     lcd.print("min");
@@ -165,13 +274,13 @@ void infoPrg()
   }
   
   lcd.clear(); 
-  for(c=0;c<2;c++){
+  for(c=0;c<boilNum;c++){
     lcd.setCursor( 0, 0 );    
     lcd.print( pd[2]);
     lcd.print(" S:");
     lcd.print(c);
     lcd.setCursor( 0, 1 );    
-    lcd.print(boilTemp);
+    lcd.print(boilTemp[c]);
     lcd.print("/");
     lcd.print(boilTime[c]);
     lcd.print("min");
@@ -202,9 +311,15 @@ MASH
 
 void mashPrg()
 {
+  
+  if(mashTemp[0] == 0){
+    countButton1 = 0;
+    countButton2 = 0;
+    return;
+  }
   float temp = readTemp();
-  sendStatusTempToLCD(mashState,temp);
-  mashGo(temp,mashState);
+  sendStatusTempToLCD(state,temp);
+  mash_boil_Go(temp,state,mashTemp[state],mashTime[state],mashNum);
 }
 
 
@@ -217,33 +332,14 @@ BOIL
 
 void boilPrg()
 {
+  if(mashTemp[0] == 0){
+    countButton1 = 0;
+    countButton2 = 0;
+    return;
+  }
   float temp = readTemp();
-  sendStatusTempToLCD(boilState,temp);
-  
-  
-  if(temp > boilTemp){
-    digitalWrite(HEATER,LOW);
-    if(timerStatus == 0){
-      timerStartMillis = millis();  
-      timerStatus = 1;
-    }
-  }else{
-    digitalWrite(HEATER,HIGH);
-  }
-  
-  if(timerStatus == 1){
-     int minutes = displayTimer();
-    
-     if(boilState == 0 && minutes == boilTime[0]){
-       boilState = 1;
-       timerStartMillis = millis();
-       minutes = 0;
-     }
-     if(boilState == 1 && minutes >= boilTime[1]) {
-       digitalWrite(HEATER,LOW);
-       sendEndToLCD();
-     }
-  }
+  sendStatusTempToLCD(state,temp);
+  mash_boil_Go(temp,state,boilTemp[state],boilTime[state],boilNum);
 }
 
 /*
@@ -279,14 +375,14 @@ void fermenterPrg()
 
 
 
-
+/* Legge la temperatura */
 float readTemp()
 {
   sensors.requestTemperatures();
   return sensors.getTempCByIndex(0); 
 }
 
-
+/* Invia la temperatura su un LCD (modo 4bit) */
 void sendStatusTempToLCD(int s, float temp)
 {
   lcd.clear();               
@@ -349,22 +445,20 @@ int displayTimer()
  return minutes;
 }
 
-void mashGo(float temp,int s){
+void mash_boil_Go(float temp,int s, float t, int m, int num){
   
   switch (s){
     case 0:
-      if(temp >= mashTemp[s]){
+      if(temp >= t){
         digitalWrite(HEATER,LOW);
-        mashState = s + 1;
+        state = s + 1;
         delay(5000);
       }else{
        digitalWrite(HEATER,HIGH);   
       }
       break;  
-    default:
-      digitalWrite(COOLER,HIGH);
-      
-      if(temp >= mashTemp[s]){
+    default:    
+      if(temp >= (t - tempTollerance)){
         digitalWrite(HEATER,LOW); 
         if(timerStatus == 0){
           timerStartMillis = millis();  
@@ -377,11 +471,14 @@ void mashGo(float temp,int s){
       if(timerStatus == 1) {
         int minutes = displayTimer();
       
-        if(minutes == mashTime[s-1]){
-          if(s == 4){
-             sendEndToLCD();
+        if(minutes == m){
+          state = s + 1;
+          if(state == num){
+            sendEndToLCD();
+            delay(5000);
+            countButton1 = 0;
+            countButton2 = 0;
           }else{
-            mashState = s + 1;
             timerStatus = 0;
           }
         }
